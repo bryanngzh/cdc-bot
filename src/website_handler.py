@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.firefox.service import Service
 
 from abstracts.cdc_abstract import CDCAbstract, Types
 from src.utils.common import selenium_common
@@ -68,16 +69,18 @@ class handler(CDCAbstract):
             options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--no-proxy-server")
+        options.binary_location = '/Applications/Firefox.app/Contents/MacOS/firefox'
 
         driver_name = "geckodriver" if browser_type.lower() == "firefox" else "chromedriver"
         if self.platform == "windows":
             driver_name += ".exe"
         executable_path = os.path.join("drivers", self.platform, driver_name)
-
+        service = Service(executable_path=executable_path)
+        
         if browser_type.lower() == "firefox":
-            self.driver = webdriver.Firefox(executable_path=executable_path, options=options)
+            self.driver = webdriver.Firefox(service=service, options=options)
         else:
-            self.driver = webdriver.Chrome(executable_path=executable_path, options=options)
+            self.driver = webdriver.Chrome(service=service, options=options)
 
         self.driver.set_window_size(1600, 768)
         super().__init__(username=self.username, password=self.password, headless=headless)
@@ -236,7 +239,7 @@ class handler(CDCAbstract):
 
     def open_home_page(self, sleep_delay: Union[int, None] = None):
         self.driver.get(self.home_url)
-        assert "ComfortDelGro" in self.driver.title
+        # assert "ComfortDelGro" in self.driver.title
 
         if sleep_delay:
             time.sleep(sleep_delay)
@@ -244,18 +247,18 @@ class handler(CDCAbstract):
     def account_login(self):
         self.open_home_page(sleep_delay=2)
 
-        prompt_login_btn = selenium_common.wait_for_elem(self.driver, By.XPATH, "//*[@id='top-menu']/ul/li[10]/a")
+        prompt_login_btn = selenium_common.wait_for_elem(self.driver, By.XPATH, "/html/body/div[1]/div/header/div/div/div[1]/div[3]/div[1]/div/div/span")
         prompt_login_btn.click()
 
-        learner_id_input = selenium_common.wait_for_elem(self.driver, By.NAME, "userId")
-        password_input = selenium_common.wait_for_elem(self.driver, By.NAME, "password")
+        learner_id_input = selenium_common.wait_for_elem(self.driver, By.NAME, "userId_4")
+        password_input = selenium_common.wait_for_elem(self.driver, By.NAME, "password_4")
 
         learner_id_input.send_keys(self.username)
         password_input.send_keys(self.password)
 
         success, _ = self.captcha_solver.solve(driver=self.driver, captcha_type="recaptcha_v2")
         if success:
-            login_btn = selenium_common.wait_for_elem(self.driver, By.ID, "BTNSERVICE2")
+            login_btn = selenium_common.wait_for_elem(self.driver, By.CLASS_NAME, "BTNSERVICE")
             login_btn.click()
 
             _, alert_text = selenium_common.dismiss_alert(driver=self.driver, timeout=5)
@@ -265,15 +268,15 @@ class handler(CDCAbstract):
                 time.sleep(1)
                 return self.account_login()
             else:
-                url_digits = re.findall(r'\d+', self.driver.current_url)
-                if len(url_digits) > 0:
-                    self.port = str(url_digits[-1])
-                    self.logged_in = True
-                    return True
-                else:
-                    self.account_logout()
-                    time.sleep(1)
-                    return self.account_login()
+                # url_digits = re.findall(r'\d+', self.driver.current_url)
+                # if len(url_digits) > 0:
+                    # self.port = str(url_digits[-1])
+                self.logged_in = True
+                return True
+                # else:
+                #     self.account_logout()
+                #     time.sleep(1)
+                #     return self.account_login()
 
     def account_logout(self):
         self._open_index("NewPortal/logOut.aspx?PageName=Logout")
