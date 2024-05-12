@@ -44,7 +44,7 @@ class CDCAbstract:
         self.has_auto_reserved_simulator = False
 
         # Practical
-        self.can_book_next_practical = True
+        self.can_book_next_practical = False
         self.has_auto_reserved_practical = False
 
         # PT
